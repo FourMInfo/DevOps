@@ -68,3 +68,63 @@ def git2Github(repository:String @doc("URL of remote repository")) = {
         }
 }
 
+@doc("Delete history--e.g. useful for getting rid of first version with continual fixes")
+@main
+def delHistory(comMsg:String @doc("message for renewed first commit")) = {
+    // The process used here is based on the following links:
+    // https://gist.github.com/heiswayi/350e2afda8cece810c0f6116dadbe651
+    // https://stackoverflow.com/questions/13716658/how-to-delete-all-commit-history-in-github
+    // initialize log
+    val logFile = makeLog
+    // Checkout latest version as orphan branch
+    val gitOrphanT = Try(%%('git,"checkout", "--orphan", "latest_branch"))
+    val continueOn = contOrNot(gitOrphanT," checkout latest version as orphan branch ", logFile)
+    // add all the files
+    val continueOn1 = 
+        if (continueOn) {
+            val gitAddT = Try(%%('git, "add", "."))
+            contOrNot(gitAddT," add files to git ", logFile)
+        } else {
+            false
+        }
+    // commit the orphan branch with the message you provided
+    val continueOn2 = 
+        if (continueOn1) {
+            val gitCommitT = Try(%%('git, "commit", "-m", comMsg))
+            contOrNot(gitCommitT,s" commit files to git w/comment $comMsg ", logFile)
+        } else {
+            false
+        }
+    // delete the master branch
+    val continueOn3 = 
+        if (continueOn2) {
+            val gitDelT = Try(%%('git, "branch", "-D", "master"))
+            contOrNot(gitDelT," delete master branch ", logFile)
+        } else {
+            false
+        }
+    // rename the current branch to master
+    val continueOn4 = 
+        if (continueOn3) {
+            val gitRenBT = Try(%%('git, "branch", "-m", "master"))
+            contOrNot(gitRenBT," rename the current branch to master ", logFile)
+        } else {
+            false
+        }
+    // force update remote repository  
+    val continueOn5 = 
+        if (continueOn4) {
+            val gitForceRT = Try(%%('git, "push", "-f", "origin", "master"))
+            contOrNot(gitForceRT," force update remote repository ", logFile)
+        } else {
+            false
+        }
+    // reset upstream origin for master
+    val continueOn6 = 
+    if (continueOn5) {
+        val gitRemoteUCT = Try(%%('git, "push", "--set-upstream", "origin", "master"))
+        contOrNot(gitRemoteUCT," reset upstream origin for master ", logFile)
+    } else {
+        false
+    }
+}
