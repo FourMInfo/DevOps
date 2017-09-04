@@ -61,8 +61,8 @@ def git2Github(repository:String @doc("URL of remote repository")) = {
     // push local files to remote and set remote master as upstream
     val continueOn6 = 
         if (continueOn5) {
-            val gitRemoteUCT = Try(%%('git, "push", "--set-upstream", "origin", "master"))
-            contOrNot(gitRemoteUCT," push files to remote repository ", logFile)
+            val gitPush = Try(%%('git, "push", "--set-upstream", "origin", "master"))
+            contOrNot(gitPush," push files to remote repository ", logFile)
         } else {
             false
         }
@@ -122,8 +122,34 @@ def delHistory(comMsg:String @doc("message for renewed first commit")) = {
     // reset upstream origin for master
     val continueOn6 = 
     if (continueOn5) {
-        val gitRemoteUCT = Try(%%('git, "push", "--set-upstream", "origin", "master"))
-        contOrNot(gitRemoteUCT," reset upstream origin for master ", logFile)
+        val gitPush = Try(%%('git, "push", "--set-upstream", "origin", "master"))
+        contOrNot(gitPush," reset upstream origin for master ", logFile)
+    } else {
+        false
+    }
+}
+
+@doc("Git commit and push")
+@main
+def commitPush(comMsg:String @doc("message for commit")) = {
+    // initialize log
+    val logFile = makeLog
+    // Stage all changed files 
+    val gitAddT = Try(%%('git, "add", "-A"))
+    val continueOn = contOrNot(gitAddT," add changed files to git ", logFile)
+    // commit the changes with the message you provide
+    val continueOn1 = 
+        if (continueOn) {
+            val gitCommitT = Try(%%('git, "commit", "-m", comMsg))
+            contOrNot(gitCommitT,s" commit files to git w/comment $comMsg ", logFile)
+        } else {
+            false
+        }
+    // push upstream
+    val continueOn2 = 
+    if (continueOn1) {
+        val gitPush = Try(%%('git, "push"))
+        contOrNot(gitPush," push changes upstream  ", logFile)
     } else {
         false
     }
